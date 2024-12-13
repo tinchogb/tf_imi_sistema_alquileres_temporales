@@ -30,7 +30,7 @@ class CostFreeTest {
 		
 		reserveMock = mock(Reserve.class);
 		dateTest = LocalDate.of(2024, 10, 10);
-		
+		when(this.reserveMock.getCancellationDate()).thenReturn(dateTest);
 		bookingMock = mock(Booking.class);
 		
 		
@@ -44,7 +44,7 @@ class CostFreeTest {
 	void cancellation10DaysBeforeCheckIn() {
 		when(reserveMock.getCheckIn()).thenReturn(LocalDate.of(2024, 10, 21));
 		assertTrue(dateTest.isBefore(reserveMock.getCheckIn()));
-		cancellationtest.activate(reserveMock, dateTest);
+		cancellationtest.activate(reserveMock);
 		verify(reserveMock).setPrice(0.0);
 	}
 	@Test
@@ -56,7 +56,7 @@ class CostFreeTest {
 		when(bookingMock.price(LocalDate.of(2024, 10, 16))).thenReturn(10.5);
 		when(bookingMock.price(LocalDate.of(2024, 10, 17))).thenReturn(10.5);
 		
-		cancellationtest.activate(reserveMock, dateTest);
+		cancellationtest.activate(reserveMock);
 		verify(reserveMock).setPrice(21.0);
 	}
 	@Test
@@ -66,7 +66,7 @@ class CostFreeTest {
 		when(reserveMock.getBooking()).thenReturn(bookingMock);
 		
 		when(bookingMock.price(LocalDate.of(2024, 10, 16))).thenReturn(20.5);
-		cancellationtest.activate(reserveMock, dateTest);
+		cancellationtest.activate(reserveMock);
 		verify(reserveMock).setPrice(41.0);
 	}
 	

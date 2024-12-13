@@ -9,7 +9,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import sa.booking.reserveStates.IReserveState;
-import sa.booking.reserveStates.ReserveBooked;
 import sa.booking.reserveStates.Timer;
 import sa.properties.Property;
 import sa.users.Owner;
@@ -30,6 +29,7 @@ class ReserveTest {
 	private IReserveState stateBooked;
 	
 	private LocalDate	today;
+
 	
 	@BeforeEach
 	void setUp() throws Exception {
@@ -93,21 +93,14 @@ class ReserveTest {
 
 	@Test
 	public void testSetState() {
-		assertNotNull(this.reserve.getState()); //la reserva esta en waiting
-		this.reserve.setState(this.stateBooked); // cambiamos el estado de la reserva a booked
+		assertNull(this.reserve.getState()); //la reserva se crea sin estado
+		this.reserve.setState(this.stateBooked); // configuro el estado de la reserva a booked
 		assertEquals(this.stateBooked, this.reserve.getState());
 	} 
 
 	@Test
-	public void testFromCreatedToBooked() {
-		assertNotNull(this.reserve.getState()); 
-		this.reserve.setState(this.stateBooked);				//es literalmente el mismo codigo que el test anterior
-		assertEquals(this.stateBooked, this.reserve.getState());
-	}
-
-	@Test
 	public void testCancel() {
-		assertNotNull(this.reserve.getState());
+		assertNull(this.reserve.getState());
 		this.reserve.setState(this.stateBooked);
 		this.reserve.cancel();
 		verify(this.stateBooked, times(1)).cancel();
@@ -115,25 +108,71 @@ class ReserveTest {
 
 	@Test
 	public void testApprove() {
-		assertNotNull(this.reserve.getState());
-		verifyNoInteractions(this.tenant);
+		assertNull(this.reserve.getState());
+		this.reserve.setState(this.stateBooked);
 		this.reserve.approve();
-		verify(this.booking, times(1)).addReserve(this.reserve);
-		verify(this.tenant, times(1)).sendEmail(reserve, "Se acaba de aceptar tu reserva.");
+		verify(this.stateBooked, times(1)).approve();
 	}
 
 	@Test
 	public void testDecline() {
-		assertNotNull(this.reserve.getState());
-		verify(this.owner, times(0)).cleanRequestedReserve();
-		verify(this.tenant, times(0)).reserveDeclined(this.reserve);
-		this.reserve.setState(this.stateBooked); //necesito cambiarle el estado ya que un waiting no sabe ser rechazado, solamente cancelado
-		this.reserve.decline(); 
-		//assertNull(this.reserve.getState());  no tiene sentido en nuestra implementacion
-		verify(this.owner, times(1)).cleanRequestedReserve();
-		verify(this.tenant, times(1)).reserveDeclined(this.reserve);
+		assertNull(this.reserve.getState());
+		this.reserve.setState(this.stateBooked);
+		this.reserve.decline();
+		verify(this.stateBooked, times(1)).decline();
 	}
 
+	@Test
+	public void testDeclined() {
+		assertNull(this.reserve.getState());
+		verify(this.booking, times(0)).handleDeclination(this.reserve);
+		verify(this.tenant, times(0)).reserveDeclined(this.reserve);
+		this.reserve.declined();
+		verify(this.tenant, times(1)).reserveDeclined(this.reserve);
+		verify(this.booking, times(1)).handleDeclination(this.reserve);
+	}
+	
+	@Test
+	public void testApproved() {
+		assertNull(this.reserve.getState());
+		verify(this.tenant, times(0)).reserveApproved(this.reserve);
+		verify(this.tenant, times(0)).sendEmail(this.reserve, "Se acaba de aceptar tu reserva.");
+		verify(this.booking, times(0)).handleDeclination(this.reserve);
+		this.reserve.approved();
+		verify(this.tenant, times(1)).reserveApproved(this.reserve);
+		verify(this.tenant, times(1)).sendEmail(this.reserve, "Se acaba de aceptar tu reserva.");
+		verify(this.booking, times(1)).handleApprovation(this.reserve);
+	}
+
+	@Test
+	public void testCancelled() {
+		assertNull(this.reserve.getState());
+		verify(this.booking, times(0)).handleCancellation(this.reserve);
+		this.reserve.cancelled();
+		verify(this.booking, times(1)).handleCancellation(this.reserve);
+	}
+
+	@Test
+	public void testFinished() {
+		assertNull(this.reserve.getState());
+		verify(this.booking, times(0)).handleFinalization(this.reserve);
+		this.reserve.finished();
+		verify(this.booking, times(1)).handleFinalization(this.reserve);
+	}
+
+	@Test
+	public void testGetCancellationDate() {
+		assertNull(this.reserve.getCancellationDate());
+	}
+
+	@Test
+	public void testSetCancellationDate() {
+		assertNull(this.reserve.getCancellationDate());
+		LocalDate date = LocalDate.now();
+		this.reserve.setCancellationDate(date);
+		assertEquals(date, this.reserve.getCancellationDate());
+	}
+	
 	@Test
 	public void testSetPrice() {
 		assertEquals(this.price, this.reserve.getPrice());

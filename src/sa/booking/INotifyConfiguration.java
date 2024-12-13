@@ -6,6 +6,10 @@ public interface INotifyConfiguration {
 	public void registerPriceObserver(INotifyObserver o);
 	public void registerCancelObserver(INotifyObserver o);
 	public void registerReserveObserver(INotifyObserver o);
+	
+	public void unRegisterPriceObserver(INotifyObserver o);
+	public void unRegisterCancelObserver(INotifyObserver o);
+	public void unRegisterReserveObserver(INotifyObserver o);
 
 	public void notifySubscribersPrice();
 	public void notifySubscribersReserve(Reserve r);

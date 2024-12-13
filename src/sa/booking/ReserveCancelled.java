@@ -1,8 +1,8 @@
-package sa.booking.reserveStates;
+package sa.booking;
 
 import java.time.LocalDate;
 
-import sa.booking.Reserve;
+import sa.booking.reserveStates.IReserveState;
 
 public class ReserveCancelled implements IReserveState {
 
@@ -13,12 +13,6 @@ public class ReserveCancelled implements IReserveState {
 		// TODO Auto-generated constructor stub
 		this.reserve = reserve;
 		this.cancelDate = date;
-	}
-
-	@Override
-	public boolean isCancelled() {
-		// TODO Auto-generated method stub
-		return true;
 	}
 
 	@Override
@@ -36,4 +30,10 @@ public class ReserveCancelled implements IReserveState {
 
 	@Override
 	public void update() {}
+
+	@Override
+	public void approve() {}
+
+	@Override
+	public void decline() {}
 }

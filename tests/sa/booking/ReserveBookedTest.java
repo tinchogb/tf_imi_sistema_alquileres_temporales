@@ -1,4 +1,4 @@
-package sa.booking.reserveStates;
+package sa.booking;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -7,9 +7,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.mockito.Mockito.*;
 
-
-import sa.booking.Booking;
-import sa.booking.Reserve;
+import sa.booking.reserveStates.Timer;
 import sa.properties.Property;
 import sa.users.Owner;
 import sa.users.Tenant;
@@ -69,16 +67,25 @@ class ReserveBookedTest {
 	void testGetReserve() {
 		assertEquals(this.reserve, this.stateBooked.getReserve());
 	}
-
-	@Test
-	void testIsCancelled() {
-		assertEquals(false, this.stateBooked.isCancelled());
-	}
 	
 	@Test
 	void testUpdate() {
 		this.stateBooked.update();
 		verify(reserve,times(3)).getBooking();  //Se usan 3 veces, en el constructor de stateBooked, en el metodo update, y la otra en el constructor de reserveOccupied
 		verify(booking,times(3)).getTimer();  //Se usan 3 veces, en el constructor de stateBooked, en el metodo update, y la otra en el constructor de reserveOccupied
+	}
+
+	@Test
+	void testApprove() {
+		verify(this.reserve, times(1)).getBooking();
+		this.stateBooked.approve();
+		verify(this.reserve, times(1)).getBooking();
+	}
+
+	@Test
+	void testDecline() {
+		verify(this.reserve, times(1)).getBooking();
+		this.stateBooked.decline();
+		verify(this.reserve, times(1)).getBooking();
 	}
 }

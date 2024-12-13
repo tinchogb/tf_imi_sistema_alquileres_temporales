@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import sa.booking.Period;
+import sa.booking.Reserve;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,7 +18,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import sa.booking.Booking;
-import sa.booking.Reserve;
 import sa.properties.Review;
 import sa.properties.Property;
 
@@ -113,6 +113,6 @@ class OwnerTest {
 	
 	@Test
 	void sendEmailTest() {
-	tenant.sendEmail(requestedReserve, "mensaje");
+		owner.sendEmail(requestedReserve, "mensaje");
 	}
 }

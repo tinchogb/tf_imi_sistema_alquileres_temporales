@@ -5,7 +5,8 @@ import sa.subscriptions.INotifyTimerSubscriber;
 
 public interface IReserveState extends INotifyTimerSubscriber {
 
+	public void approve();
 	public void cancel();
-	public boolean isCancelled();
+	public void decline();
 	public Reserve getReserve();
 }
