@@ -7,8 +7,8 @@ import sa.booking.Reserve;
 public class IntermediateCancellation implements ICancellationPolicy{
 
 	@Override
-	public void activate(Reserve reserve, LocalDate cancellationDate) {
-		
+	public void activate(Reserve reserve) {
+		LocalDate cancellationDate = reserve.getCancellationDate();
 		if(cancellationDate.isBefore(reserve.getCheckIn().minusDays(20))) {
 			System.out.println("La cancelación se asentó correctamente de manera gratuita");
 			reserve.setPrice(0.0);
@@ -18,7 +18,6 @@ public class IntermediateCancellation implements ICancellationPolicy{
 		}else {
 			System.out.println("La cancelación se asentó correctamente, se paga todo");
 		}
-		
 	}
 
 }

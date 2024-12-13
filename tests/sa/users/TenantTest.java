@@ -94,11 +94,11 @@ class TenantTest {
 	
 	@Test
 	void qualifyOwnerTest() {
-	tenant.qualify(owner);
+		tenant.qualify(owner);
 	}
 
 	@Test
 	void sendEmailTest() {
-	tenant.sendEmail(reserve, "mensaje");
+		tenant.sendEmail(reserve, "mensaje");
 	}
 }

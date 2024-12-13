@@ -72,13 +72,14 @@ public class Booking implements INotifyConfiguration {
 		// TODO Auto-generated method stub
 		// El owner tiene que evaluar si aceptarla o no.
 		Reserve newReserve = new Reserve(this, t, new Period(start, end));
-		this.getConditionalReserves().add(newReserve);
-		this.getProperty().getOwner().reserveRequested(newReserve); //cada vez que se crea una nueva reserva, tiene que llamar al owner para saber si lo aprueba o no?
+		this.handleNewRequest(newReserve);		
 	}
 
 	public void newConditionalReserve(Tenant t, LocalDate start, LocalDate end) {
 		// TODO Auto-generated method stub
-		this.getConditionalReserves().add(new Reserve(this, t, new Period(start, end)));
+		Reserve newReserve = new Reserve(this, t, new Period(start, end));
+		newReserve.setState(new ReserveConditional(newReserve));
+		this.getConditionalReserves().add(newReserve);
 	}
 
 	public Period getPeriod() {
@@ -140,9 +141,9 @@ public class Booking implements INotifyConfiguration {
 		return this.policy;
 	}
 
-	public void applyPolicy(Reserve r, LocalDate cancellationDate) {
+	public void applyPolicy(Reserve r) {
 		// TODO Auto-generated method stub
-		this.policy.activate(r,cancellationDate);
+		this.policy.activate(r);
 	}
 
 	public void setBasePrice(double newPrice) {
@@ -185,7 +186,7 @@ public class Booking implements INotifyConfiguration {
 		return this.waitings;
 	}
 
-	void addReserve(Reserve reserve) {
+	public void addReserve(Reserve reserve) {
 		// TODO Auto-generated method stub
 		this.getReserves().add(reserve);
 		this.notifySubscribersReserve(reserve);
@@ -194,31 +195,6 @@ public class Booking implements INotifyConfiguration {
 	public Timer getTimer() {
 		// TODO Auto-generated method stub
 		return this.timer;
-	}
-
-	//cambie temporalmente de private a public porque no lo podia testear
-	void triggerNextRequest(LocalDate start, LocalDate end) {
-//		for (LocalDate currDate = start; !currDate.equals(end.plusDays(1)); currDate.plusDays(1)) {
-//			final LocalDate date = currDate; // Nos tira error en el lambda porque necesita que sea final
-//			Optional<Reserve> wr = this.getConditionalReserves().stream()
-//									.filter(w -> date.equals(w.getCheckIn()) && end.isBefore(end.plusDays(1)))
-//									.findFirst();
-//			// Si está en waiting pasa a ser una reserva formal
-//			if (wr.isPresent()) {
-//				Reserve next_r = wr.get();
-//				this.getProperty().getOwner().reserveRequested(next_r);
-//			}
-//		}
-		
-		Period aux = new Period(start,end);  //armo un periodo auxiliar con las fechas que me dieron para poder usar el metodo belongs
-		List<Reserve> conditionalReserves = this.getConditionalReserves(); // lista de reservas condicionales. Se podria ahorrar esta linea de codigo poniendo el metodo directamente en el for
-		
-		for(Reserve r : conditionalReserves) { //for iterando en cada elemento de la lista de condicionales
-			if(aux.belongs(r.getCheckIn()) && aux.belongs(r.getCheckOut())) { //verifica que esa reserva condicional este dentro del periodo que se cancelo (aux)
-				this.getProperty().getOwner().reserveRequested(r); //Notifico al owner para que verifique esta reserva
-				break; //rompo el ciclo 
-			}
-		}
 	}
 
 	public Pricer getPricer() {
@@ -231,21 +207,74 @@ public class Booking implements INotifyConfiguration {
 		this.reserves.remove(reserve);
 	}
 
-	public void removeWaiting(Reserve reserve) {
+	void removeWaiting(Reserve reserve) {
 		// TODO Auto-generated method stub
 		this.getConditionalReserves().remove(reserve);
 	}
 
-	public void handleCancellation(Reserve reserve) {
+	void handleNewRequest(Reserve reserve) {
+		// TODO Auto-generated method stub
+		reserve.setState(new ReserveWaiting(reserve));
+		this.getProperty().getOwner().reserveRequested(reserve);
+	}
+	
+	void handleCancellation(Reserve reserve) {
 		// TODO Auto-generated method stub
 		this.removeReserve(reserve);
 		this.notifySubscribersCancelled(reserve);
-		// TODO: qué se hace con la reserva cancelada 'r' ?
-		this.applyPolicy(reserve, LocalDate.now());
+		this.applyPolicy(reserve);
 		this.getProperty().getOwner().sendEmail(reserve, "Se acaba de cencelar la reserva.");
 		this.triggerNextRequest(LocalDate.now(), reserve.getCheckOut());
 	}
 
+	void handleFinalization(Reserve reserve) {
+		// TODO Auto-generated method stub
+		// Pasos a realizar:
+		// 1. Sacar de reserves que administra Booking
+		// 2. Tenant tiene que calificar al Owner y Property
+		// 3. Owner tiene que calificar al Tenant
+		this.removeReserve(reserve);
+		this.triggerQualification(reserve);
+	}
+
+	void handleApprovation(Reserve reserve) {
+		// TODO Auto-generated method stub
+		// El owner debe olvidar esta reserve ya que la aprobó
+		this.triggerRemoveWaiting(reserve);
+		this.addReserve(reserve);
+	}
+
+	void handleDeclination(Reserve reserve) {
+		// TODO Auto-generated method stub
+		this.getProperty().getOwner().cleanRequestedReserve();
+	}
+
+	void triggerRemoveWaiting(Reserve reserve) {
+		this.getProperty().getOwner().cleanRequestedReserve();
+		this.removeWaiting(reserve);
+	}
+	
+ 	void triggerNextRequest(LocalDate start, LocalDate end) {
+		Period aux = new Period(start,end);  //armo un periodo auxiliar con las fechas que me dieron para poder usar el metodo belongs
+		List<Reserve> conditionalReserves = this.getConditionalReserves(); // lista de reservas condicionales. Se podria ahorrar esta linea de codigo poniendo el metodo directamente en el for
+
+		for(Reserve r : conditionalReserves) { //for iterando en cada elemento de la lista de condicionales
+			if(aux.belongs(r.getCheckIn()) && aux.belongs(r.getCheckOut())) { //verifica que esa reserva condicional este dentro del periodo que se cancelo (aux)
+				this.triggerRemoveWaiting(r);
+				this.handleNewRequest(r);
+				break;
+			}
+		}
+	}
+
+	void triggerQualification(Reserve reserve) {
+		// TODO Auto-generated method stub
+		reserve.getTenant().qualify(this.getProperty());
+		reserve.getTenant().qualify(this.getProperty().getOwner());
+		this.getProperty().getOwner().qualify(reserve.getTenant());
+	}
+
+	// Handle NOTIFICATIONS
 	@Override
 	public void registerPriceObserver(INotifyObserver o) {
 		// TODO Auto-generated method stub
@@ -284,16 +313,19 @@ public class Booking implements INotifyConfiguration {
 		this.obsCancel.stream().forEach(o -> o.updateCancellation(r));
 	}
 
+	@Override
 	public void unRegisterPriceObserver(INotifyObserver o) {
 		// TODO Auto-generated method stub
 		this.obsPrice.remove(o);
 	}
 
+	@Override
 	public void unRegisterCancelObserver(INotifyObserver o) {
 		// TODO Auto-generated method stub
 		this.obsCancel.remove(o);
 	}
 
+	@Override
 	public void unRegisterReserveObserver(INotifyObserver o) {
 		// TODO Auto-generated method stub
 		this.obsReserve.remove(o);

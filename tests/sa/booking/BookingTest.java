@@ -3,7 +3,6 @@ package sa.booking;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -16,13 +15,10 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
-import sa.booking.reserveStates.ReserveBooked;
+import sa.booking.reserveStates.IReserveState;
 import sa.booking.reserveStates.Timer;
 import sa.cancellation.CostFree;
-import sa.cancellation.ICancellationPolicy;
-import sa.cancellation.NoCancellation;
 import sa.properties.Property;
-import sa.observer.ApplicationMobile;
 import sa.observer.interfaces.INotifyObserver;
 import sa.users.Owner;
 import sa.users.Tenant;
@@ -81,6 +77,9 @@ public class BookingTest {
 	private Period				bookedperiod2;
 	private Period				bookedperiod3;
 	private Period				bookedperiod4;
+	private IReserveState 		waiting;
+	private IReserveState 		conditional;
+	private IReserveState 		cancelled;
 	
 	@BeforeEach
 	public void setUp() {
@@ -111,6 +110,9 @@ public class BookingTest {
 		this.bookedperiod3		= mock(Period.class);
 		this.bookedperiod4		= mock(Period.class);
 	    this.timer				= mock(Timer.class);
+	    this.conditional		= mock(ReserveConditional.class);
+	    this.waiting			= mock(ReserveWaiting.class);
+	    this.cancelled			= mock(ReserveCancelled.class);
 	    
 		this.period = mock(Period.class);
 		
@@ -272,8 +274,9 @@ public class BookingTest {
 		assertNotNull(this.booking.getPolicy());
 		verifyNoInteractions(this.policy);
 		when(this.reserve1.getBooking()).thenReturn(booking);
-		this.booking.applyPolicy(this.reserve1,LocalDate.now()); //Se necesita una fecha ahora, verificar 
-		verify(this.policy).activate(this.reserve1,LocalDate.now());  //activate ahora necesita un LocalDate
+		when(this.reserve1.getCancellationDate()).thenReturn(begin);
+		this.booking.applyPolicy(this.reserve1); //Se necesita una fecha ahora, verificar 
+		verify(this.policy).activate(this.reserve1);  //activate ahora necesita un LocalDate
 	}
 
 	@Test
@@ -338,39 +341,101 @@ public class BookingTest {
 	}
 
 	@Test
-	public void testTriggerNextRequestApproved() {
+	public void testTriggerNextRequest() {
 		
 		when(property.getOwner()).thenReturn(owner);
 		
-		Reserve spyReserve1 = spy(new Reserve(booking,tenant1,bookedperiod1)); //necesito un spy
-		
+		Reserve spyReserve1 = spy(new Reserve(booking,tenant1,bookedperiod1));
+		spyReserve1.setState(this.conditional);
 		assertEquals(0, this.booking.getConditionalReserves().size());
 		this.waitings.add(spyReserve1);
 		assertEquals(1, this.booking.getConditionalReserves().size());
 		this.booking.triggerNextRequest(spyReserve1.getCheckIn(),spyReserve1.getCheckOut());
 		verify(this.owner, times(1)).reserveRequested(spyReserve1);
-		
-		spyReserve1.approve();
-		
-		assertTrue(this.booking.getReserves().contains(spyReserve1));
-		
-		verify(owner).cleanRequestedReserve();
-		assertEquals(0, this.booking.getConditionalReserves().size());
 	}
 	
 	@Test
-	public void testTriggerNextRequestDeclined() {
-		
-		when(property.getOwner()).thenReturn(owner);
-		Reserve spyReserve1 = spy(new Reserve(booking,tenant1,bookedperiod1)); //necesito un spy
-		
+	public void testTriggerRemoveWaiting() {
+		Reserve spyReserve1 = spy(new Reserve(booking,tenant1,bookedperiod1));
+		spyReserve1.setState(this.conditional);
+		this.waitings.add(spyReserve1);
+		verify(this.owner, times(0)).cleanRequestedReserve();
+		assertEquals(1, this.booking.getConditionalReserves().size());
+		this.booking.triggerRemoveWaiting(spyReserve1);
+		verify(this.owner, times(1)).cleanRequestedReserve();
 		assertEquals(0, this.booking.getConditionalReserves().size());
+	}
+
+	@Test
+	public void testTriggerQualification() {
+		Reserve spyReserve1 = spy(new Reserve(booking,tenant1,bookedperiod1));
+		spyReserve1.setState(this.conditional);
+		this.waitings.add(spyReserve1);
+		this.booking.triggerQualification(spyReserve1);
+		verify(this.tenant1, times(1)).qualify(property);
+		verify(this.tenant1, times(1)).qualify(owner);
+		verify(this.owner, times(1)).qualify(tenant1);
+	}
+
+	@Test
+	public void testHandleDeclination() {
+		Reserve spyReserve1 = spy(new Reserve(booking,tenant1,bookedperiod1));
+		spyReserve1.setState(this.conditional);
+		this.waitings.add(spyReserve1);
+		verify(this.owner, times(0)).cleanRequestedReserve();
+		this.booking.handleDeclination(spyReserve1);
+		verify(this.owner, times(1)).cleanRequestedReserve();
+	}
+
+	@Test
+	public void testHandleApprovation() {
+		Reserve spyReserve1 = spy(new Reserve(booking,tenant1,bookedperiod1));
+		spyReserve1.setState(this.conditional);
 		this.waitings.add(spyReserve1);
 		assertEquals(1, this.booking.getConditionalReserves().size());
-		this.booking.triggerNextRequest(spyReserve1.getCheckIn(),spyReserve1.getCheckOut());
-		verify(this.owner, times(1)).reserveRequested(spyReserve1);
-		
-		spyReserve1.decline();
+		assertEquals(0, this.booking.getReserves().size());
+		verify(this.owner, times(0)).cleanRequestedReserve();
+		this.booking.handleApprovation(spyReserve1);
+		assertEquals(0, this.booking.getConditionalReserves().size());
+		verify(this.owner, times(1)).cleanRequestedReserve();
+		assertEquals(1, this.booking.getReserves().size());
+	}
+
+	@Test
+	public void testHandleFinalization() {
+		Reserve spyReserve1 = spy(new Reserve(booking,tenant1,bookedperiod1));
+		spyReserve1.setState(this.conditional);
+		this.reserves.add(spyReserve1);
+		verify(this.tenant1, times(0)).qualify(property);
+		verify(this.tenant1, times(0)).qualify(owner);
+		verify(this.owner, times(0)).qualify(tenant1);
+		assertEquals(1, this.booking.getReserves().size());
+		this.booking.handleFinalization(spyReserve1);
+		verify(this.tenant1, times(1)).qualify(property);
+		verify(this.tenant1, times(1)).qualify(owner);
+		verify(this.owner, times(1)).qualify(tenant1);
+		assertEquals(0, this.booking.getReserves().size());
+	}
+
+	@Test
+	public void testHandleCancellation() {
+		Reserve spyReserve1 = spy(new Reserve(booking,tenant1,bookedperiod3)); //today + 4 days
+		Reserve spyReserve2 = spy(new Reserve(booking,tenant1,bookedperiod4)); //today.plusDays(1) + 2 day
+		ReserveCancelled stateCancelled = mock(ReserveCancelled.class);
+		spyReserve1.setState(stateCancelled);
+		spyReserve1.setCancellationDate(today);
+		spyReserve2.setState(this.conditional);
+		this.reserves.add(spyReserve1);
+		this.waitings.add(spyReserve2);
+		when(stateCancelled.cancellationDate()).thenReturn(today);
+		assertEquals(1, this.booking.getReserves().size());
+		assertEquals(1, this.booking.getConditionalReserves().size());
+		verify(spyReserve1, times(0)).cancelled();
+		this.booking.handleCancellation(spyReserve1);
+		assertEquals(0, this.booking.getReserves().size());
+		verify(subscriber2, times(1)).updateCancellation(spyReserve1);
+		verify(policy, times(1)).activate(spyReserve1);
+		verify(this.owner, times(1)).sendEmail(spyReserve1, "Se acaba de cencelar la reserva.");
 		assertEquals(0, this.booking.getConditionalReserves().size());
 	}
 

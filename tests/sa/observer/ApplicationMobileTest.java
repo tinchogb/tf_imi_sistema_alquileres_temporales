@@ -16,9 +16,6 @@ import org.junit.jupiter.api.Test;
 
 import sa.booking.Booking;
 import sa.booking.Reserve;
-
-
-
 import sa.properties.Property;
 import sa.properties.PropertyType;
 

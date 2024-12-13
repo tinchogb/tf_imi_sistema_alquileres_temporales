@@ -12,8 +12,6 @@ import java.time.LocalDate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-
-
 import sa.booking.Reserve;
 
 class IntermediateCancellationTest {
@@ -27,8 +25,8 @@ private IntermediateCancellation cancellationtest;
 		
 		reserveMock = mock(Reserve.class);
 		cancellationtest = new IntermediateCancellation();
-		
 		dateTest = LocalDate.of(2024, 10, 1);
+		when(this.reserveMock.getCancellationDate()).thenReturn(dateTest);
 	}
 
 	@Test
@@ -39,28 +37,28 @@ private IntermediateCancellation cancellationtest;
 	@Test
 	void cancelation20DaysBeforeCheckInTest() {
 		when(reserveMock.getCheckIn()).thenReturn(LocalDate.of(2024, 10, 22));
-		cancellationtest.activate(reserveMock, dateTest);
+		cancellationtest.activate(reserveMock);
 		verify(reserveMock).setPrice(0.0);
 	}
 	
 	@Test
 	void cancellation19daysBeforeCheckInTest() {
 		when(reserveMock.getCheckIn()).thenReturn(LocalDate.of(2024, 10, 20));
-		cancellationtest.activate(reserveMock, dateTest);
+		cancellationtest.activate(reserveMock);
 		verify(reserveMock).setPrice(reserveMock.getPrice() * 0.5);
 	}
 	@Test
 	void cancellation10daysBeforeCheckInTest() {
 		assertTrue(dateTest.isBefore(LocalDate.of(2024, 10, 12).minusDays(10)));
 		when(reserveMock.getCheckIn()).thenReturn(LocalDate.of(2024, 10, 12));
-		cancellationtest.activate(reserveMock, dateTest);
+		cancellationtest.activate(reserveMock);
 		verify(reserveMock).setPrice(reserveMock.getPrice() * 0.5);
 	}
 	
 	@Test
 	void cancellation5daysBeforeCheckInTest() {
 		when(reserveMock.getCheckIn()).thenReturn(LocalDate.of(2024, 10, 6));
-		cancellationtest.activate(reserveMock, dateTest);
+		cancellationtest.activate(reserveMock);
 		verify(reserveMock,never()).getPrice();
 	}
 	

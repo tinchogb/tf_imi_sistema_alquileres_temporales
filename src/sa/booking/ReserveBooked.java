@@ -1,9 +1,9 @@
-package sa.booking.reserveStates;
+package sa.booking;
 
 
 import java.time.LocalDate;
 
-import sa.booking.Reserve;
+import sa.booking.reserveStates.IReserveState;
 
 public class ReserveBooked implements IReserveState {
 
@@ -25,13 +25,6 @@ public class ReserveBooked implements IReserveState {
 		this.getReserve().cancelled();
 	}
 
-
-	@Override
-	public boolean isCancelled() {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
 	@Override
 	public Reserve getReserve() {
 		// TODO Auto-generated method stub
@@ -45,6 +38,12 @@ public class ReserveBooked implements IReserveState {
 		this.getReserve().getBooking().getTimer().unregister(this, this.getReserve().getCheckIn());
 		this.getReserve().setState(new ReserveOccupied(this.getReserve()));
 	}
+
+	@Override
+	public void approve() {}
+
+	@Override
+	public void decline() {}
 
 
 }

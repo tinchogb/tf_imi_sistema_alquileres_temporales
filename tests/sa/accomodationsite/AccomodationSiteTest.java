@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 
 import sa.booking.Booking;
 import sa.booking.PaymentMethod;
+import sa.booking.Reserve;
 import sa.booking.SpecialPeriod;
 import sa.properties.AmenityType;
 import sa.properties.Property;
@@ -25,7 +26,6 @@ import sa.searcher.composite.And;
 import sa.searcher.composite.Or;
 import sa.searcher.simpleQuery.IQuery;
 import sa.users.Tenant;
-import sa.booking.Reserve;
 import sa.booking.reserveStates.Timer;
 import sa.cancellation.ICancellationPolicy;
 

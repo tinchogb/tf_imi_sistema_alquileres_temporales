@@ -4,10 +4,11 @@ import java.time.LocalDate;
 
 import sa.booking.Reserve;
 
-public class CostFree implements ICancellationPolicy{
+public class CostFree implements ICancellationPolicy {
 
 	@Override
-	public void activate(Reserve reserve, LocalDate cancellationDate) {
+	public void activate(Reserve reserve) {
+		LocalDate cancellationDate = reserve.getCancellationDate();
 		if(cancellationDate.isBefore(reserve.getCheckIn().minusDays(10))) {
 			System.out.println("La cancelación se asentó correctamente de manera gratuita");
 			reserve.setPrice(0.0);

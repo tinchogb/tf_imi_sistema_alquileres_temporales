@@ -1,4 +1,4 @@
-package sa.booking.reserveStates;
+package sa.booking;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -13,6 +13,9 @@ import org.junit.jupiter.api.Test;
 
 import sa.booking.Booking;
 import sa.booking.Reserve;
+import sa.booking.ReserveBooked;
+import sa.booking.ReserveOccupied;
+import sa.booking.reserveStates.Timer;
 
 
 class TimerTest {

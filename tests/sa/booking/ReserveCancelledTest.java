@@ -1,4 +1,4 @@
-package sa.booking.reserveStates;
+package sa.booking;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -8,8 +8,6 @@ import org.junit.jupiter.api.Test;
 import static org.mockito.Mockito.*;
 
 import java.time.LocalDate;
-
-import sa.booking.Reserve;
 
 class ReserveCancelledTest {
 
@@ -46,11 +44,6 @@ class ReserveCancelledTest {
 	}
 
 	@Test
-	void testIsCancelled() {
-		assertEquals(true, this.stateCancelled.isCancelled());
-	}
-
-	@Test
 	void testCancellationDate() {
 		assertEquals(this.cancelDate, this.stateCancelled.cancellationDate());
 	}
@@ -60,4 +53,17 @@ class ReserveCancelledTest {
 		this.stateCancelled.update();
 		verifyNoInteractions(this.reserve);
 	}
+
+	@Test
+	void testApprove() {
+		this.stateCancelled.approve();
+		verifyNoInteractions(this.reserve);
+	}
+
+	@Test
+	void testDecline() {
+		this.stateCancelled.decline();
+		verifyNoInteractions(this.reserve);
+	}
+	
 }
