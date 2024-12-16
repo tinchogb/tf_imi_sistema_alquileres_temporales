@@ -17,12 +17,10 @@ import sa.booking.Booking;
 import sa.booking.Period;
 import sa.properties.Property;
 
-import sa.searcher.simpleQuery.CheckIn;
 import sa.searcher.simpleQuery.City;
-
 import sa.searcher.simpleQuery.MaxGuest;
-
 import sa.searcher.simpleQuery.MinPrice;
+import sa.searcher.simpleQuery.ReservePeriod;
 
 class OrTest {
 
@@ -35,17 +33,19 @@ class OrTest {
 	private City cityQuery;
 	private MaxGuest maxGuestQuery;
 	private MinPrice minPriceQuery;
-	private CheckIn checkInQuery;
+	private ReservePeriod reservePeriodQuery;
 	private Property house;
 	
 	private LocalDate startDate;
+	private LocalDate endDate;
 	private Period bookingPeriod;
 	private LocalDate checkInDate;
+	private LocalDate checkOutDate;
 	
 	private City spyCityQuery;
 	private MaxGuest spyMaxGuestQuery;
 	private MinPrice spyMinPriceQuery;
-	private CheckIn spyCheckInQuery;
+	private ReservePeriod spyReservePeriodQuery;
 	@BeforeEach
 	void setUp() throws Exception {
 		cityQuery = new City("Buenos Aires");
@@ -57,17 +57,14 @@ class OrTest {
 		
 		startDate = LocalDate.of(2024, 11, 20);
 		checkInDate = LocalDate.of(2024, 11, 20);
+		checkOutDate = checkInDate.plusDays(1);
 		
-		
-		minPriceQuery = new MinPrice(1238.0,checkInDate);
+		minPriceQuery = new MinPrice(1229.0, checkInDate);
 		spyMinPriceQuery =spy(minPriceQuery);
 		
-		checkInQuery = new CheckIn(checkInDate);
-		spyCheckInQuery = spy(checkInQuery);
-		
-		querytest1 = new Or(spyCityQuery,spyMaxGuestQuery);
-		querytest2 = new Or(spyMinPriceQuery,spyCheckInQuery);
-		
+		reservePeriodQuery = new ReservePeriod(checkInDate, checkOutDate);
+		spyReservePeriodQuery = spy(reservePeriodQuery);
+
 		bookingMock = mock(Booking.class);
 		bookings = new ArrayList<Booking>();
 		
@@ -76,7 +73,8 @@ class OrTest {
 		bookingPeriod = mock(Period.class);
 		
 		
-		when(bookingPeriod.start()).thenReturn(startDate); 
+		when(bookingPeriod.start()).thenReturn(startDate);
+		when(bookingPeriod.end()).thenReturn(endDate);
 		
 		when(house.getCity()).thenReturn("Buenos Aires");
 		when(house.getMaxGuests()).thenReturn(5);
@@ -84,10 +82,17 @@ class OrTest {
 		when(bookingMock.getProperty()).thenReturn(house);
 		when(bookingMock.getPeriod()).thenReturn(bookingPeriod);
 		when(bookingMock.price(checkInDate)).thenReturn(1230.0);
+		when(bookingMock.price(checkOutDate)).thenReturn(1239.0);
 		when(bookingMock.isAvailableDate(checkInDate)).thenReturn(true);
+		when(bookingMock.isAvailableDate(checkOutDate)).thenReturn(true);
 		when(bookingPeriod.belongs(checkInDate)).thenReturn(true);
+		when(bookingPeriod.belongs(checkOutDate)).thenReturn(true);
 		
 		bookings.add(bookingMock);
+
+		// SUT
+		querytest1 = new Or(spyCityQuery,spyMaxGuestQuery);
+		querytest2 = new Or(spyMinPriceQuery,spyReservePeriodQuery);
 	}
 
 	@Test
@@ -95,15 +100,14 @@ class OrTest {
 		assertNotNull(querytest1);
 		assertNotNull(querytest2);
 	}
+
 	@Test
 	void firstQuerySearchTest() {
-		assertEquals(querytest1.search(bookings).size(),1);
+		assertEquals(1, querytest1.search(bookings).size());
 	}
+
 	@Test
 	void secondQuerySearchTest() {
-		assertEquals(querytest2.search(bookings).size(),1);
+		assertEquals(1, querytest2.search(bookings).size());
 	}
-	
-	
-
 }

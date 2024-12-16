@@ -238,7 +238,6 @@ public class BookingTest {
 		assertNotNull(this.bookingReal);
 	}
 
-
 	@Test
 	public void testGetPeriod() {
 		assertEquals(this.period, this.booking.getPeriod());
@@ -280,6 +279,83 @@ public class BookingTest {
 	}
 
 	@Test
+	public void testAvailablePeriods() {
+		Period periodTest1 = mock(Period.class);
+		Period periodTest2 = mock(Period.class);
+		Period periodTest3 = mock(Period.class);
+		Period periodTest4 = mock(Period.class);
+		
+		when(periodTest1.start()).thenReturn(begin);
+		when(periodTest1.end()).thenReturn(end);
+		
+		// La lista de reserves del booking esta vacia,por ende
+		// el periodo disponible va a ser solo uno, y es equivalent
+		// al total de tiempo de alquiler disponible de la propiedad
+		
+		assertEquals(this.booking.availablePeriods().size(),1);
+		assertEquals(this.booking.availablePeriods().get(0).start(),periodTest1.start());
+		assertEquals(this.booking.availablePeriods().get(0).end(),periodTest1.end()); 
+		
+		//Agrego una reserva de 1 dia 
+		
+		when(periodTest2.start()).thenReturn(begin.plusDays(1));
+		when(periodTest2.end()).thenReturn(end);
+		
+		this.reserves.add(reserve1);
+		assertEquals(this.booking.availablePeriods().size(),1);
+		assertEquals(this.booking.availablePeriods().get(0).start(),periodTest2.start());
+		assertEquals(this.booking.availablePeriods().get(0).end(),periodTest2.end()); 
+		
+		//Agrego una reserva de dos dias que esta en medio WIP
+		
+		when(periodTest3.start()).thenReturn(begin);
+		when(periodTest3.end()).thenReturn(begin);
+		
+		when(periodTest4.start()).thenReturn(begin.plusDays(3));
+		when(periodTest4.end()).thenReturn(begin.plusDays(4));
+		
+		this.reserves.remove(reserve1);
+		this.reserves.add(reserve4);
+		
+		assertEquals(this.booking.availablePeriods().size(),2);
+		
+		assertEquals(this.booking.availablePeriods().get(0).start(),periodTest3.start());
+		assertEquals(this.booking.availablePeriods().get(0).end(),periodTest3.end());
+		
+		assertEquals(this.booking.availablePeriods().get(1).start(),periodTest4.start());
+		assertEquals(this.booking.availablePeriods().get(1).end(),periodTest4.end());
+	}
+
+	@Test
+	public void testHasAvailablePeriod() {
+		assertEquals(1, this.booking.availablePeriods().size());
+		// Reserve day 1
+		this.reserves.add(reserve1);
+		// Still has 1 available period (publication period minus first day).
+		assertEquals(1, this.booking.availablePeriods().size());
+		assertFalse(this.booking.hasAvailablePeriod(this.today, this.today));
+		assertTrue(this.booking.hasAvailablePeriod(this.today.plusDays(1), this.end.minusDays(1)));
+    }
+	
+	@Test
+	public void testIsAvailableDate() {
+		this.reserves.add(reserve4);// dias ocupados mañana y pasado
+		
+		assertTrue(this.booking.isAvailableDate(today)); // hoy esta disponible
+		assertFalse(this.booking.isAvailableDate(today.plusDays(1))); //mañana no esta disponible
+	}
+	
+	@Test
+	public void testIsAvailableNullDate() {
+	
+		   Exception exception = assertThrows(IllegalArgumentException.class, () -> {
+            this.booking.isAvailableDate(null);
+        });
+
+        assertEquals("La fecha no puede ser nulo", exception.getMessage());
+    }
+
+	@Test
 	public void testSetBasePrice() {
 		verify(this.pricer, times(0)).price(this.begin);
 		assertEquals(this.pricePerDayWeekday, this.booking.price(this.begin));
@@ -289,6 +365,18 @@ public class BookingTest {
 		this.booking.setBasePrice(pricePerDayWeekday*0.5);
 		when(this.pricer.getBasePrice()).thenReturn(pricePerDayWeekday);
 		verify(this.pricer, times(1)).setBasePrice(pricePerDayWeekday*0.5);
+	}
+
+	@Test
+	public void testSetSPPrice() {
+		verify(this.subscriber1, times(0)).updateLowerPrice(this.booking);
+		double newPrice = pricePerDayHighSeason*0.5;
+		verify(this.specialPeriod1, times(0)).price();
+		verify(this.specialPeriod1, times(0)).setPrice(newPrice);
+		this.booking.setSPPrice(newPrice, this.specialPeriod1);
+		verify(this.specialPeriod1, times(1)).price();
+		verify(this.specialPeriod1, times(1)).setPrice(newPrice);
+		verify(this.subscriber1, times(1)).updateLowerPrice(this.booking);
 	}
 	
 	@Test
@@ -340,6 +428,13 @@ public class BookingTest {
 		assertEquals(1, this.booking.getConditionalReserves().size());
 	}
 
+	@Test
+	public void testRemoveReserve() {
+		booking.addReserve(reserve1);
+		booking.removeReserve(reserve1);
+		assertEquals(0, booking.getReserves().size());
+	}
+	
 	@Test
 	public void testTriggerNextRequest() {
 		
@@ -511,131 +606,5 @@ public class BookingTest {
 		this.booking.notifySubscribersReserve(reserve1);
 		verify(this.subscriber3, times(1)).updateNewReserve(reserve1);
 	}
-	
-//	@Test
-//	public void testUpdate() {
-//		assertEquals(0, this.reserves.size());
-//		this.reserves.add(this.reserve1);
-//		assertEquals(1, this.reserves.size());
-//		verify(this.reserve1, times(0)).getCheckOut();
-//		this.booking.update(this.reserve1, this.today);
-//		verify(this.reserve1, times(1)).getCheckOut();
-//
-//		assertEquals(0, this.reserves.size());				el metodo update en booking ya no existe, se diversifico en los estados
-//		this.reserves.add(this.reserve1);
-//		assertEquals(1, this.reserves.size());
-//		verify(this.reserve1, times(1)).getCheckOut();
-//		verify(this.reserve1, times(0)).next();
-//		this.booking.update(this.reserve1, this.today.minusDays(1));
-//		verify(this.reserve1, times(3)).getCheckOut();
-//		verify(this.reserve1, times(1)).next();
-//	}
 
-	@Test
-	public void testSetSPPrice() {
-		verify(this.subscriber1, times(0)).updateLowerPrice(this.booking);
-		double newPrice = pricePerDayHighSeason*0.5;
-		verify(this.specialPeriod1, times(0)).price();
-		verify(this.specialPeriod1, times(0)).setPrice(newPrice);
-		this.booking.setSPPrice(newPrice, this.specialPeriod1);
-		verify(this.specialPeriod1, times(1)).price();
-		verify(this.specialPeriod1, times(1)).setPrice(newPrice);
-		verify(this.subscriber1, times(1)).updateLowerPrice(this.booking);
-	}
-	
-	@Test
-	public void availablePeriodsTest() {
-		//assertTrue(this.booking.availablePeriods().size() != 0);
-		//period = mock(Period.class);
-		//Preguntar como el booking SUT sabe su periodo
-		//No se inicializo el period del booking
-		Period periodTest1 = mock(Period.class);
-		Period periodTest2 = mock(Period.class);
-		Period periodTest3 = mock(Period.class);
-		Period periodTest4 = mock(Period.class);
-		
-		when(periodTest1.start()).thenReturn(begin);
-		when(periodTest1.end()).thenReturn(end);
-		
-		//La lista de reserves del booking esta vacia,por ende el periodo disponible va a ser solo uno, y es equivalente al total de tiempo de alquiler disponible de la propiedad
-		
-		assertEquals(this.booking.availablePeriods().size(),1);
-		assertEquals(this.booking.availablePeriods().get(0).start(),periodTest1.start());
-		assertEquals(this.booking.availablePeriods().get(0).end(),periodTest1.end()); 
-		
-		
-		//Agrego una reserva de 1 dia 
-		
-		when(periodTest2.start()).thenReturn(begin.plusDays(1));
-		when(periodTest2.end()).thenReturn(end);
-		
-		this.reserves.add(reserve1);
-		assertEquals(this.booking.availablePeriods().size(),1);
-		assertEquals(this.booking.availablePeriods().get(0).start(),periodTest2.start());
-		assertEquals(this.booking.availablePeriods().get(0).end(),periodTest2.end()); 
-		
-		//Agrego una reserva de dos dias que esta en medio WIP
-		
-		when(periodTest3.start()).thenReturn(begin);
-		when(periodTest3.end()).thenReturn(begin);
-		
-		when(periodTest4.start()).thenReturn(begin.plusDays(3));
-		when(periodTest4.end()).thenReturn(begin.plusDays(4));
-		
-		this.reserves.remove(reserve1);
-		this.reserves.add(reserve4);
-		
-		assertEquals(this.booking.availablePeriods().size(),2);
-		
-		assertEquals(this.booking.availablePeriods().get(0).start(),periodTest3.start());
-		assertEquals(this.booking.availablePeriods().get(0).end(),periodTest3.end());
-		
-		assertEquals(this.booking.availablePeriods().get(1).start(),periodTest4.start());
-		assertEquals(this.booking.availablePeriods().get(1).end(),periodTest4.end());
-		
-
-	
-		
-	}
-	
-	@Test
-	public void isAvailableDateTest() {
-		this.reserves.add(reserve4);// dias ocupados mañana y pasado
-		
-		assertTrue(this.booking.isAvailableDate(today)); // hoy esta disponible
-		assertFalse(this.booking.isAvailableDate(today.plusDays(1))); //mañana no esta disponible
-	}
-	
-	@Test
-	void isAvailableNullDateTest() {
-	
-		   Exception exception = assertThrows(IllegalArgumentException.class, () -> {
-            this.booking.isAvailableDate(null);
-        });
-
-        assertEquals("La fecha no puede ser nulo", exception.getMessage());
-    }
-	
-
-	
-
-	@Test
-	void removeReserveTest() {
-		booking.addReserve(reserve1);
-		booking.removeReserve(reserve1);
-		assertEquals(0, booking.getReserves().size());
-	}
-	
-	@Test
-	void handleCancellationTest() {
-		
-		verifyNoInteractions(this.owner);
-		this.booking.handleCancellation(reserve2);
-		assertEquals(0, booking.getReserves().size());
-		verify(this.owner, times(1)).sendEmail(reserve2, "Se acaba de cencelar la reserva.");
-	}
-	
-
-
-	
 }

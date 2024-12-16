@@ -95,19 +95,31 @@ public class Booking implements INotifyConfiguration {
 		
 		LocalDate startDate = this.getPeriod().start();
 		
-		this.reserves.sort((r1,r2)-> r1.getCheckIn().compareTo(r2.getCheckIn())); //Ordeno la lista de reservas de forma cronologica
+		// Ordena la lista de reservas de forma cronologica
+		this.reserves.sort((r1,r2)-> r1.getCheckIn().compareTo(r2.getCheckIn()));
 		
 		for(Reserve reserve: reserves) {
-			if(startDate.isBefore(reserve.getCheckIn())) {  //SI LA FECHA DE INICIO DEL ALQUILER ESTA ANTES QUE LA FECHA DE CHECKIN DEL PRIMER ALQUILER REGISTRADO
-				avaiablePeriods.add(new Period(startDate, reserve.getCheckIn().minusDays(1))); //SE CREA UN PERIODO NUEVO CUYO INICIO ES LA FECHA DE INICIO Y EL FIN ES UN DIA ANTES QUE EMPIECE LA PRIMER RESERVA DE LA LISTA. A ESTE PERIODO LO AGREGO A LA LISTA DE PERIODOS DISPONIBLES
+		    // SI LA FECHA DE INICIO DEL ALQUILER ESTA ANTES QUE
+			// LA FECHA DE CHECKIN DEL PRIMER ALQUILER REGISTRADO
+			if(startDate.isBefore(reserve.getCheckIn())) {
+				// SE CREA UN PERIODO NUEVO CUYO INICIO ES LA FECHA DE INICIO Y
+				// EL FIN ES UN DIA ANTES QUE EMPIECE LA PRIMER RESERVA DE LA LISTA.
+				// A ESTE PERIODO LO AGREGO A LA LISTA DE PERIODOS DISPONIBLES
+				avaiablePeriods.add(new Period(startDate, reserve.getCheckIn().minusDays(1)));
 			}
-			startDate = reserve.getCheckOut().plusDays(1);	//HAGO QUE LA FECHA DE INICIO SEA UN DIA DESPUES DEL CHECK OUT DE LA RESERVA ACTUAL	
+		    // HAGO QUE LA FECHA DE INICIO SEA UN DIA DESPUES DEL CHECK OUT DE LA
+			// RESERVA ACTUAL
+			startDate = reserve.getCheckOut().plusDays(1);	
 		}
-		
-		if(startDate.isBefore(this.getPeriod().end()) || startDate.equals(this.getPeriod().end())) { //VERIFICA QUE DESPUES DE REGISTRAR TODAS LOS ALQUILERES, MI FECHA DE INICIO ESTE ANTES QUE LA FECHA FINAL DEL ALQUILER O QUE SEA IGUAL. EN EL CASO DE QUE SI, SE AGREGA UN PERIODO CUYA FECHA DE INICIO ES LA FECHA INICIAL Y LA FECHA FINAL ES LA FECHA FINAL DEL ALQUILER
+		// VERIFICA QUE DESPUES DE REGISTRAR TODAS LOS ALQUILERES, MI FECHA DE
+		// INICIO ESTE ANTES QUE LA FECHA FINAL DEL ALQUILER O QUE SEA IGUAL.
+		// EN EL CASO DE QUE SI, SE AGREGA UN PERIODO CUYA FECHA DE INICIO ES
+		// LA FECHA INICIAL Y LA FECHA FINAL ES LA FECHA FINAL DEL ALQUILER
+		if(startDate.isBefore(this.getPeriod().end()) ||
+			startDate.equals(this.getPeriod().end())) {
 			avaiablePeriods.add(new Period(startDate,this.getPeriod().end()));
 		}
-		
+
 		return avaiablePeriods;
 	}
 	
@@ -126,6 +138,12 @@ public class Booking implements INotifyConfiguration {
 		return false;
 	}
 
+	public boolean hasAvailablePeriod(LocalDate start, LocalDate end) {
+		// TODO Auto-generated method stub
+		return this.availablePeriods().stream()
+										.anyMatch(p -> p.belongs(start) && p.belongs(end));
+	}
+	
 	public Property getProperty() {
 		// TODO Auto-generated method stub
 		return this.property;
@@ -330,4 +348,5 @@ public class Booking implements INotifyConfiguration {
 		// TODO Auto-generated method stub
 		this.obsReserve.remove(o);
 	}
+
 }
